@@ -1,0 +1,40 @@
+{
+  "name": "eth-dev-101",
+  "version": "1.0.0",
+  "description": "",
+  "main": "app.js",
+  "scripts": {
+    "keygen": "node genTestKey.js",
+    "test": "cd truffle && truffle deploy && truffle test && cd .."
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/alex-miller-0/eth-dev-101.git"
+  },
+  "author": "Alex Miller",
+  "license": "ISC",
+  "dependencies": {
+    "bitcore-lib": "^0.14.0",
+    "bluebird": "latest",
+    "body-parser": "~1.16.0",
+    "chai": "latest",
+    "cookie-parser": "~1.4.3",
+    "debug": "~2.6.0",
+    "eth-lightwallet": "2.5.4",
+    "ethereumjs-abi": "0.6.4",
+    "ethereumjs-util": "5.1.1",
+    "ethereumjs-tx": "latest",
+    "express": "~4.14.1",
+    "jsonfile": "latest",
+    "jsonwebtoken": "latest",
+    "js-sha3": "latest",
+    "morgan": "~1.7.0",
+    "mysql": "latest",
+    "request": "latest",
+    "rlp": "2.0.0",
+    "secp256k1": "latest",
+    "serve-favicon": "~2.3.2",
+    "solidity-sha3": "0.4.1",
+    "web3": "^0.18.2"
+  }
+}
