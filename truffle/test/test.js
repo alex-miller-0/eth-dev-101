@@ -17,7 +17,7 @@ contract('Token', function(accounts) {
     .then(function(instance) {
       tokenA = instance;
       assert.notEqual(instance.address, null);
-      file.test.token_a = instance.address;
+      file.token_a = instance.address;
       return tokenA.name()
     })
     .then(function(name) {
@@ -31,10 +31,8 @@ contract('Token', function(accounts) {
 
   it('Should send me some ether and tokens.', function() {
     assert.notEqual(keys.me, null, 'You have not created a key for yourself in test/test.keys')
-
     var eth = 1*Math.pow(10, 18);
     var tokena = 5000*Math.pow(10, 8);
-    var tokenb = 5000*Math.pow(10, 8);
     var sendObj = {
       from: accounts[0],
       value: eth,
@@ -43,21 +41,18 @@ contract('Token', function(accounts) {
     Promise.resolve(web3.eth.sendTransaction(sendObj))
     .then(function(txHash) {
       assert.notEqual(txHash, null);
-      return timeout(2000);
-    })
-    .then(function() {
-      return web3.eth.getBalance(keys.me)
+      return web3.eth.getBalance(keys.me.address)
     })
     .then(function(balance) {
-      console.log('My ether balance: ', balance, keys.me);
-      return tokenA.transfer.sendTransaction(keys.me, tokena, { from: accounts[0] })
+      assert.notEqual(balance.toNumber(), 0)
+      return tokenA.transfer.sendTransaction(keys.me.address, tokena, { from: accounts[0] })
     })
     .then(function(txHash) {
       assert.notEqual(txHash, null);
-      return tokenA.balanceOf.call(keys.me)
+      return tokenA.balanceOf.call(keys.me.address)
     })
     .then(function(a_bal) {
-      console.log(`My balance of ${tokenA.address}: ${parseInt(a_bal)}`, keys.me)
+      assert.equal(a_bal.toNumber(), 5000*Math.pow(10, 8))
     })
   })
 
