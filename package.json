@@ -5,7 +5,8 @@
   "main": "app.js",
   "scripts": {
     "keygen": "node genTestKey.js",
-    "test": "cd truffle && truffle deploy && truffle test && cd .. && mocha test/test1.js"
+    "test": "cd truffle && truffle deploy && truffle test && cd .. && mocha test/test1.js",
+    "attack": "mocha test/attack.js"
   },
   "repository": {
     "type": "git",
