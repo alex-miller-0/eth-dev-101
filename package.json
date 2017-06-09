@@ -4,9 +4,11 @@
   "description": "",
   "main": "app.js",
   "scripts": {
+    "init": "cd truffle && truffle deploy && truffle test && cd ..",
     "keygen": "node genTestKey.js",
-    "test": "cd truffle && truffle deploy && truffle test && cd .. && mocha test/test1.js",
-    "attack": "mocha test/attack.js"
+    "test": "npm run init && mocha test/test1.js",
+    "attack": "mocha test/attack.js",
+    "channels": "npm run init && mocha test/channels.js"
   },
   "repository": {
     "type": "git",

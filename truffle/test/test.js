@@ -30,26 +30,26 @@ contract('Token', function(accounts) {
   });
 
   it('Should send me some ether and tokens.', function() {
-    assert.notEqual(keys.me, null, 'You have not created a key for yourself in test/test.keys')
-    var eth = 1*Math.pow(10, 18);
+    assert.notEqual(keys.test, null, 'You have not created a key for yourself in test/test.keys')
+    var eth = 10*Math.pow(10, 18);
     var tokena = 5000*Math.pow(10, 8);
     var sendObj = {
       from: accounts[0],
       value: eth,
-      to: keys.me.address
+      to: keys.test.address
     }
     Promise.resolve(web3.eth.sendTransaction(sendObj))
     .then(function(txHash) {
       assert.notEqual(txHash, null);
-      return web3.eth.getBalance(keys.me.address)
+      return web3.eth.getBalance(keys.test.address)
     })
     .then(function(balance) {
       assert.notEqual(balance.toNumber(), 0)
-      return tokenA.transfer.sendTransaction(keys.me.address, tokena, { from: accounts[0] })
+      return tokenA.transfer.sendTransaction(keys.test.address, tokena, { from: accounts[0] })
     })
     .then(function(txHash) {
       assert.notEqual(txHash, null);
-      return tokenA.balanceOf.call(keys.me.address)
+      return tokenA.balanceOf.call(keys.test.address)
     })
     .then(function(a_bal) {
       assert.equal(a_bal.toNumber(), 5000*Math.pow(10, 8))
