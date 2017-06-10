@@ -73,10 +73,11 @@ contract Channels {
     Channel memory _channel;
     _channel = channels[h[0]];
 
-    // https://ethereum.stackexchange.com/a/15911/1391
-    // TODO put this logic into JS
+    if (msg.sender != _channel.sender && msg.sender != _channel.recipient) { throw; }
+    
     address signer = ecrecover(h[1], v, h[2], h[3]);
     if (signer != _channel.sender) { throw; }
+
 
     // Make sure the hash provided is of the channel id and the amount sent
     bytes32 proof = sha3(h[0], value);
