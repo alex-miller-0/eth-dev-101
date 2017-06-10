@@ -33,6 +33,7 @@ contract Channels {
     // Sanity checks
     if (msg.value == 0) { throw; }
     if (to == msg.sender) { throw; }
+    if (active_ids[msg.sender][to] != bytes32(0)) { throw; }
 
     // Create a channel
     bytes32 id = sha3(msg.sender, to, now+timeout);
@@ -74,10 +75,9 @@ contract Channels {
     _channel = channels[h[0]];
 
     if (msg.sender != _channel.sender && msg.sender != _channel.recipient) { throw; }
-    
+
     address signer = ecrecover(h[1], v, h[2], h[3]);
     if (signer != _channel.sender) { throw; }
-
 
     // Make sure the hash provided is of the channel id and the amount sent
     bytes32 proof = sha3(h[0], value);
@@ -88,8 +88,10 @@ contract Channels {
     if (!_channel.recipient.send(value)) { throw; }
     else if (!_channel.sender.send(_channel.deposit-value)) { throw; }
 
+
     // Close the channel
     delete channels[h[0]];
+    delete active_ids[_channel.sender][_channel.recipient];
 
 	}
 
@@ -110,6 +112,7 @@ contract Channels {
 
     // Close the channel
     delete channels[id];
+    delete active_ids[_channel.sender][_channel.recipient];
 	}
 
 
