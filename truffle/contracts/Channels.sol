@@ -84,6 +84,9 @@ contract Channels {
     if (proof != h[1]) { throw; }
     else if (value > _channel.deposit) { throw; }
 
+    if (!_channel.recipient.send(value)) { throw; }
+    else if (!_channel.sender.send(_channel.deposit-value)) { throw; }
+
     // Close the channel
     delete channels[h[0]];
 
