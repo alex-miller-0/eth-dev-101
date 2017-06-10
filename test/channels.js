@@ -20,7 +20,6 @@ describe('Channels', function(done) {
   it('Should make sure test account has ether', function(done) {
     Promise.resolve(config.web3.eth.getBalance(keys.test.address))
     .then((balance) => {
-      console.log('balance', balance)
       assert.notEqual(parseInt(balance), 0, 'Test account has a zero balance')
       done();
     })
@@ -43,14 +42,13 @@ describe('Channels', function(done) {
     .then((_id) => {
       assert.notEqual(_id, '0x0000000000000000000000000000000000000000000000000000000000000000', 'No channel created')
       channel_id = _id.substr(2, _id.length);
-      console.log('id', channel_id)
       done();
     })
     .catch((err) => { assert.equal(err, null, err); })
   })
 
-  it('Should sign a message for 0.1ETH', function(done) {
-    var _value = 0.1*Math.pow(10, 18)
+  it('Should sign a message for 0.01ETH', function(done) {
+    var _value = 0.01*Math.pow(10, 18)
     var value = _value.toString(16)
     // let msg_hash = ethutil.sha3(channel_id+zfill(_value.toString(16)))
 
@@ -74,7 +72,6 @@ describe('Channels', function(done) {
   it('Should check to see if this message will pass', function(done) {
     // VerifyMsg(bytes32 id, bytes32 h, uint8 v, bytes32 r, bytes32 s, uint value)
     let data = `0xb475be60${channel_id}${latest_msg_hash}${latest_sig.r}${latest_sig.s}${zfill(latest_sig.v)}${zfill(latest_value)}`
-    console.log('data', data)
     Promise.resolve(config.web3.eth.call({ to: test.channels_addr, data: data }))
     .then((success) => {
       assert.equal(1, parseInt(success), 'Message did not pass')
