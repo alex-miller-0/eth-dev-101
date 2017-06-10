@@ -8,7 +8,8 @@
     "keygen": "node genTestKey.js",
     "test": "npm run init && mocha test/test1.js",
     "attack": "mocha test/attack.js",
-    "channels": "npm run init && mocha test/channels.js"
+    "channels": "npm run init && mocha test/channels.js",
+    "token-channels": "npm run init && mocha test/token_channels.js"
   },
   "repository": {
     "type": "git",

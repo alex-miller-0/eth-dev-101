@@ -1,6 +1,7 @@
 pragma solidity ^0.4.8;
+import "./ERC20.sol";
 
-contract Channels {
+contract TokenChannels {
 
   //============================================================================
   // GLOBAL VARIABLES
@@ -9,9 +10,12 @@ contract Channels {
   struct Channel {
     address sender;
     address recipient;
+    address token;
+    uint startDate;
     uint timeout;
     uint deposit;
   }
+  mapping (address => uint) balances;
 
   mapping (bytes32 => Channel) channels;
   mapping (address => mapping(address => bytes32)) active_ids;
@@ -23,11 +27,13 @@ contract Channels {
 
 	/**
 	 * Open a channel with a recipient. A non-zero message value must be included.
-	 *
+   *
+	 * address token    Address of token contract
 	 * address to       Address of recipient
+   * uint amount      Number of token quanta to send
 	 * uint timeout     Number of seconds for which the channel will be open
 	 */
-	function OpenChannel(address to, uint timeout) payable {
+	function OpenChannel(address token, address to, uint amount, uint timeout) payable {
     // Sanity checks
     if (msg.value == 0) { throw; }
     if (to == msg.sender) { throw; }
@@ -38,10 +44,17 @@ contract Channels {
 
     // Initialize the channel
     Channel memory _channel;
+		_channel.startDate = now;
 		_channel.timeout = now+timeout;
-    _channel.deposit = msg.value;
+    _channel.deposit = amount;
     _channel.sender = msg.sender;
     _channel.recipient = to;
+    _channel.token = token;
+
+    // Make the deposit
+    ERC20 t = ERC20(token);
+    if (!t.transferFrom(msg.sender, address(this), amount)) { throw; }
+
     channels[id] = _channel;
 
     // Add it to the lookup table
@@ -82,9 +95,10 @@ contract Channels {
     if (proof != h[1]) { throw; }
     else if (value > _channel.deposit) { throw; }
 
-    if (!_channel.recipient.send(value)) { throw; }
-    else if (!_channel.sender.send(_channel.deposit-value)) { throw; }
-
+    // Pay recipient and refund sender the remainder
+    ERC20 t = ERC20(_channel.token);
+    if (!t.transfer(_channel.recipient, value)) { throw; }
+    else if (!t.transfer(_channel.sender, _channel.deposit-value)) { throw; }
 
     // Close the channel
     delete channels[h[0]];
@@ -103,9 +117,10 @@ contract Channels {
     _channel = channels[id];
 
     // Make sure it's not already closed and is actually expired
+    ERC20 t = ERC20(_channel.token);
     if (_channel.deposit == 0) { throw; }
     else if (_channel.timeout > now) { throw; }
-    else if (!_channel.sender.send(_channel.deposit)) { throw; }
+    else if (!t.transfer(_channel.sender, _channel.deposit)) { throw; }
 
     // Close the channel
     delete channels[id];
