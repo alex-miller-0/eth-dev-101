@@ -133,17 +133,6 @@ contract TokenChannels {
   //============================================================================
 
   /**
-   * Get a channel id given a sender and recipient
-   *
-   * address from    sender
-   * address to      recipient
-   *
-   */
-  function GetChannelId(address from, address to) public constant returns (bytes32) {
-    return active_ids[from][to];
-  }
-
-  /**
    * Verify that a message sent will allow the channel to close.
    * Parameters are the same as for CloseChannel
    */
@@ -170,6 +159,32 @@ contract TokenChannels {
     else if (value > _channel.deposit) { return false; }
 
     return true;
+  }
+
+  // GETTERS
+
+  function GetChannelId(address from, address to) public constant returns (bytes32) {
+    return active_ids[from][to];
+  }
+
+  function GetTimeout(bytes32 id) public constant returns (uint) {
+    return channels[id].timeout;
+  }
+
+  function GetDeposit(bytes32 id) public constant returns (uint) {
+    return channels[id].deposit;
+  }
+
+  function GetSender(bytes32 id) public constant returns (address) {
+    return channels[id].sender;
+  }
+
+  function GetRecipient(bytes32 id) public constant returns (address) {
+    return channels[id].recipient;
+  }
+
+  function GetToken(bytes32 id) public constant returns (address) {
+    return channels[id].token;
   }
 
 
