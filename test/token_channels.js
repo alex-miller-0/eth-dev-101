@@ -2,6 +2,7 @@
 * Claim the agent with an owned keypair.
 */
 var assert = require('chai').assert;
+var chai = require('chai');
 var Promise = require('bluebird').Promise;
 var config = require('../config.js');
 var keys = require(`${process.cwd()}/keys.json`);
@@ -17,11 +18,12 @@ let latest_value;
 
 describe('TokenChannels', function(done) {
 
-  it('Should make sure test account has ether', function(done) {
-    Promise.resolve(config.web3.eth.getBalance(keys.test.address))
-    .then((balance) => {
-      assert.notEqual(parseInt(balance), 0, 'Test account has a zero balance')
-      done();
+  it('Should make sure test account has tokens', function(done) {
+    let data = `0x70a08231${zfill(keys.test.address)}`
+    config.web3.eth.call({ to: test.token_a, data: data }, (err, res) => {
+      assert.equal(err, null, err)
+      chai.expect(parseInt(res)).to.be.above(0.1*Math.pow(10, 8), `Balance (${parseInt(res)}) not high enough.`)
+      done()
     })
   })
 
@@ -35,12 +37,20 @@ describe('TokenChannels', function(done) {
     })
   })
 
+  it('Should verify that the contract has a sufficient allowance', function(done) {
+    let data = `0xdd62ed3e${zfill(keys.test.address)}${zfill(test.token_channels_addr)}`
+    config.web3.eth.call({ to: test.token_a, data: data }, (err, res) => {
+      assert.equal(err, null, err)
+      assert.equal(parseInt(res), 5*Math.pow(10, 8), 'Allowance not set properly.')
+      done()
+    })
+  })
+
   it('Should create a new channel', function(done) {
     const deposit = 0.05*Math.pow(10, 8);
-    var data = `0x3bb02d29${zfill(keys.test2.address)}${zfill((deposit).toString(16))}`
-    const gas = 200000;
+    var data = `0x9a2e2d52${zfill(test.token_a)}${zfill(keys.test2.address)}${zfill((deposit).toString(16))}${zfill((10000).toString(16))}`
+    const gas = 250000;
     let unsigned = util.formUnsigned(keys.test.address, test.token_channels_addr, data, 0, gas)
-    console.log('unsigned', unsigned)
     util.sendTx(unsigned, keys.test.privateKey, (txhash) => {
       if (!txhash) { assert.equal(1, 0, "Did not get a tx hash back")}
       else { done(); }
@@ -123,7 +133,7 @@ describe('TokenChannels', function(done) {
   })
 
   it('Should close the channel', function(done) {
-    const gas = 200000;
+    const gas = 250000;
     let data = `0x4ac1ec32${channel_id}${latest_msg_hash}${latest_sig.r}${latest_sig.s}${zfill(latest_sig.v)}${zfill(latest_value)}`;
 
     let unsigned = util.formUnsigned(keys.test.address, test.token_channels_addr, data, 0, gas)

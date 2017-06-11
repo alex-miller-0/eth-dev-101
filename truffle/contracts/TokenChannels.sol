@@ -35,7 +35,7 @@ contract TokenChannels {
 	 */
 	function OpenChannel(address token, address to, uint amount, uint timeout) payable {
     // Sanity checks
-    if (msg.value == 0) { throw; }
+    if (amount == 0) { throw; }
     if (to == msg.sender) { throw; }
     if (active_ids[msg.sender][to] != bytes32(0)) { throw; }
 
