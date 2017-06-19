@@ -13,8 +13,8 @@ contract TwoWayChannel {
     address token;
     uint depositA;       // Deposit of agent A
     uint depositB;       // Deposit of agent B
-    uint openA;          // True if A->B is open
-    uint openB;          // True if B->A is open
+    bool openA;          // True if A->B is open
+    bool openB;          // True if B->A is open
   }
 
   mapping (bytes32 => Channel) channels;
@@ -39,14 +39,16 @@ contract TwoWayChannel {
     if (active_ids[msg.sender][to] != bytes32(0)) { throw; }
 
     // Create a channel
-    bytes32 id = sha3(msg.sender, to, now+timeout);
+    bytes32 id = sha3(msg.sender, to, now);
 
     // Initialize the channel
     Channel memory _channel;
-    _channel.depositA = amount;
     _channel.agentA = msg.sender;
     _channel.agentB = to;
     _channel.token = token;
+    _channel.depositA = amount;     // Note that the actor opening the channel is actorA
+    _channel.openA = true;
+    _channel.openB = true;
 
     // Make the deposit
     ERC20 t = ERC20(token);
@@ -67,10 +69,11 @@ contract TwoWayChannel {
    */
   function AddDeposit(bytes32 id, uint amount) {
     // Make sure the channel exists
-    if (channels[id] == address(0)) { throw; }
+    if (channels[id].token == address(0)) { throw; }
 
     Channel memory _channel;
     _channel = channels[id];
+    ERC20 t = ERC20(_channel.token);
 
     // As long as the channel exists, either party can add to the deposit
     if (msg.sender == _channel.agentA && _channel.openA == true) {
@@ -116,13 +119,14 @@ contract TwoWayChannel {
     // Make sure the hash provided is of the channel id and the amount sent
     // Ensure the proof matches, send the value, send the remainder, and delete the channel
     if (proof != h[1]) { throw; }
-    else if (value > _channel.deposit) { throw; }
 
     // Pay recipient and refund sender the remainder
     ERC20 t = ERC20(_channel.token);
 
     if (msg.sender == _channel.agentA && signer == _channel.agentB) {
       // Close out the B->A side of the channel
+      if (value > _channel.depositB) { throw; }
+
       if (!t.transfer(_channel.agentA, value)) { throw; }
       else if (!t.transfer(_channel.agentB, _channel.depositB-value)) { throw; }
       // Close this side of the channel
@@ -132,22 +136,24 @@ contract TwoWayChannel {
         _channel.openA = false;
       }
       // Update the state
-      channels[id] = _channel;
+      channels[h[0]] = _channel;
     } else if (msg.sender == _channel.agentB && signer == _channel.agentA) {
       // Close out the A->B side of the channel
+      if (value > _channel.depositA) { throw; }
+
       if (!t.transfer(_channel.agentB, value)) { throw; }
       else if (!t.transfer(_channel.agentA, _channel.depositA-value)) { throw; }
       // Close this side of the channel
       _channel.openA = false;
       // Update the state
-      channels[id] = _channel;
+      channels[h[0]] = _channel;
     }
 
     // If both sides of the channel are closed, delete the channel
     if (_channel.openA == false && _channel.openB == false) {
       // Close the channel
       delete channels[h[0]];
-      delete active_ids[_channel.actorA][_channel.actorB];
+      delete active_ids[_channel.agentA][_channel.agentB];
     }
 
 	}
@@ -179,12 +185,13 @@ contract TwoWayChannel {
     // Make sure the hash provided is of the channel id and the amount sent
     // Ensure the proof matches, send the value, send the remainder, and delete the channel
     if (proof != h[1]) { return false; }
-    else if (value > _channel.deposit) { return false; }
 
     // Pay recipient and refund sender the remainder
     ERC20 t = ERC20(_channel.token);
 
     if (msg.sender == _channel.agentA && signer == _channel.agentB) {
+      if (value > _channel.depositB) { return false; }
+
       // Close out the B->A side of the channel
       if (!t.transfer(_channel.agentA, value)) { return false; }
       else if (!t.transfer(_channel.agentB, _channel.depositB-value)) { return false; }
@@ -195,6 +202,8 @@ contract TwoWayChannel {
         _channel.openA = false;
       }
     } else if (msg.sender == _channel.agentB && signer == _channel.agentA) {
+      if (value > _channel.depositA) { return false; }
+
       // Close out the A->B side of the channel
       if (!t.transfer(_channel.agentB, value)) { return false; }
       else if (!t.transfer(_channel.agentA, _channel.depositA-value)) { return false; }
@@ -209,20 +218,20 @@ contract TwoWayChannel {
     return active_ids[from][to];
   }
 
-  function GetTimeout(bytes32 id) public constant returns (uint) {
-    return channels[id].timeout;
+  function GetDepositA(bytes32 id) public constant returns (uint) {
+    return channels[id].depositA;
   }
 
-  function GetDeposit(bytes32 id) public constant returns (uint) {
-    return channels[id].deposit;
+  function GetDepositB(bytes32 id) public constant returns (uint) {
+    return channels[id].depositB;
   }
 
-  function GetSender(bytes32 id) public constant returns (address) {
-    return channels[id].sender;
+  function GetAgentA(bytes32 id) public constant returns (address) {
+    return channels[id].agentA;
   }
 
-  function GetRecipient(bytes32 id) public constant returns (address) {
-    return channels[id].recipient;
+  function GetAgentB(bytes32 id) public constant returns (address) {
+    return channels[id].agentB;
   }
 
   function GetToken(bytes32 id) public constant returns (address) {
