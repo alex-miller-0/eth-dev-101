@@ -1,3 +1,9 @@
+/**
+ * Version two of the TokenChannels contract
+ * Adds nonces to the messages as well as the notion of a challenge period.
+ * Either party may challenge the closing channel if they have a message with
+ * a higher nonce than the one currently recorded in the channel.
+ */
 pragma solidity ^0.4.8;
 import "./ERC20.sol";
 
@@ -95,11 +101,25 @@ contract TokenChannels {
     if (proof != h[1]) { throw; }
     else if (value > _channel.deposit) { throw; }
 
-    // Copy the data to the state
-    _channel.nonce = nonce;
-    _channel.value = value;
-    _channel.closeTime = now;
-    channels[h[0]] = _channel;
+    if (_channel.challenge == 0) {
+      // If there's no challenge period, close out the channel immediately.
+
+      // Pay recipient and refund sender the remainder
+      ERC20 t = ERC20(channels[h[0]].token);
+      if (!t.transfer(channels[h[0]].recipient, channels[h[0]].value)) { throw; }
+      else if (!t.transfer(channels[h[0]].sender, channels[h[0]].deposit-channels[h[0]].value)) { throw; }
+
+      // Delete the channel
+      delete active_ids[channels[h[0]].sender][channels[h[0]].recipient];
+      delete channels[h[0]];
+    } else {
+      // Copy the data to the state and allow challenges
+
+      _channel.nonce = nonce;
+      _channel.value = value;
+      _channel.closeTime = now;
+      channels[h[0]] = _channel;
+    }
 	}
 
 
