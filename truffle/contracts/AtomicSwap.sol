@@ -20,24 +20,25 @@ ensure their counterparty has a sufficient timeout.
 
 pragma solidity ^0.4.18;
 
-import "./Token.sol";
+import "tokens/Token.sol";  // truffle package (install with `truffle install tokens`)
 
 contract AtomicSwap {
 
   struct Swap {
     address agentA;
     address agentB;
-    uint amount;
+    uint amountA;
+    uint amountB;
     address tokenA;
     address tokenB;
     bool isForward;
     uint timeout;
   }
-  mapping (bytes32 => swap) Swaps;
+  mapping (bytes32 => Swap) Swaps;
 
-  SwapStarted(bytes32 indexed id, address[2] agents, uint[2] amounts, address[2] tokens, bool forward);
-  SwapClaimed(bytes32 indexed id, uint v1, bytes32 r1, bytes32 s1, uint v2, bytes32 r2, bytes32 s2);
-  SwapRescinded(bytes32 indexed id, uint timestamp);
+  event SwapStarted(bytes32 indexed id, address[2] agents, uint[2] amounts, address[2] tokens, bool forward);
+  event SwapClaimed(bytes32 indexed id, uint v1, bytes32 r1, bytes32 s1, uint v2, bytes32 r2, bytes32 s2);
+  event SwapRescinded(bytes32 indexed id, uint timestamp);
   //===============================
   // STATE UPDATING FUNCTIONS
   //===============================
@@ -67,8 +68,8 @@ contract AtomicSwap {
       swap.amountB = amounts[1];  // The amount of the other token (on the other chain)
       swap.tokenA = tokens[0]; // THIS token
       swap.tokenB = tokens[1]; // The other token on the other chain
-      Token token = Token(tokens[0]);
-      token.transfer(address(this), amounts[0]);
+      Token forwardToken = Token(tokens[0]);
+      forwardToken.transfer(address(this), amounts[0]);
     } else {
       swap.agentA = counterparty;
       swap.agentB = msg.sender;
@@ -76,8 +77,8 @@ contract AtomicSwap {
       swap.amountA = amounts[1];  // The amount of the other token (on the other chain)
       swap.tokenB = tokens[0]; // THIS token
       swap.tokenA = tokens[1]; // The other token on the other chain
-      Token token = Token(tokens[1]);
-      token.transfer(address(this), amounts[1]);
+      Token backwardToken = Token(tokens[1]);
+      backwardToken.transfer(address(this), amounts[1]);
     }
 
     swap.timeout = timeout;
@@ -93,35 +94,35 @@ contract AtomicSwap {
   // The counterparty will use their signature and your signature (both signing the
   // same data) to unlock their tokens. This will emit both signatures so you can
   // use it in their swap contract.
-  function forwardSwap(bytes32 id, bytes32 h, uint[2] v, bytes32[2] r, bytes32[2] s) public {
+  function forwardSwap(bytes32 id, bytes32 h, uint8[2] v, bytes32[2] r, bytes32[2] s) public {
     checkHash(id, h, true);
     checkSigs(id, h, v, r, s);
-    Token token = Tokens(Swaps[id].tokenA);
+    Token token = Token(Swaps[id].tokenA);
     token.transfer(Swaps[id].agentB, Swaps[id].amountA);
     SwapClaimed(id, v[0], r[0], s[0], v[1], r[1], s[1]);
-    delete Swaps[i];
+    delete Swaps[id];
   }
 
 
-  function backwardSwap(bytes32 id, bytes32 h, uint[2] v, bytes32[2] r, bytes32[2] s) public {
+  function backwardSwap(bytes32 id, bytes32 h, uint8[2] v, bytes32[2] r, bytes32[2] s) public {
     checkHash(id, h, false);
     checkSigs(id, h, v, r, s);
-    Token token = Tokens(Swaps[id].tokenB);
+    Token token = Token(Swaps[id].tokenB);
     token.transfer(Swaps[id].agentA, Swaps[id].amountA);
     SwapClaimed(id, v[0], r[0], s[0], v[1], r[1], s[1]);
-    delete Swaps[i];
+    delete Swaps[id];
   }
 
   function rescind(bytes32 id) public {
     assert(Swaps[id].timeout < now);
     if (Swaps[id].isForward) {
       assert(msg.sender == Swaps[id].agentA);
-      Token token = Tokens(Swaps[id].tokenA);
-      token.transfer(msg.sender, Swaps[id].amountA);
+      Token forwardToken = Token(Swaps[id].tokenA);
+      forwardToken.transfer(msg.sender, Swaps[id].amountA);
     } else {
       assert(msg.sender == Swaps[id].agentB);
-      Token token = Tokens(Swaps[id].tokenB);
-      token.transfer(msg.sender, Swaps[id].amountB);
+      Token backwardToken = Token(Swaps[id].tokenB);
+      backwardToken.transfer(msg.sender, Swaps[id].amountB);
     }
     SwapRescinded(id, now);
     delete Swaps[id];
@@ -146,7 +147,7 @@ contract AtomicSwap {
 
   // Check signatures. You need to submit signatures on the same data from both
   // parties. The order doesn't matter.
-  function checkSigs(bytes32 id, bytes32 h, uint[2] v, bytes32[2] r, bytes32[2] s) internal constant {
+  function checkSigs(bytes32 id, bytes32 h, uint8[2] v, bytes32[2] r, bytes32[2] s) internal constant {
     address signerA = ecrecover(h, v[0], r[0], s[0]);
     assert(signerA == Swaps[id].agentA || signerA == Swaps[id].agentB);
     address signerB = ecrecover(h, v[0], r[0], s[0]);
